@@ -207,6 +207,7 @@ namespace TrafficStopCallout
             }
         }
 
+        //Tick Logic
         public async Task BackInCar()
         {
             if(World.GetDistance(Game.PlayerPed.Position, Utilities.GetDriverFromTrafficStop().Position) >= 3f) { return; }
@@ -221,6 +222,7 @@ namespace TrafficStopCallout
             await Task.FromResult(0);
         }
 
+        //Utility functions
         public WeaponHash GetMeeleWeapon()
         {
             List<WeaponHash> weapons = new List<WeaponHash>()
