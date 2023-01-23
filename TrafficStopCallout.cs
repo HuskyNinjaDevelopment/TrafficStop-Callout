@@ -13,10 +13,10 @@ namespace TrafficStopCallout
     [CalloutProperties("TrafficStop", "HuskyNinja", "v1.0")]
     internal class TrafficStopCallout : Callout
     {
-        public Ped player;
-        public Ped driver;
+        public Ped player = null;
+        public Ped driver = null;
 
-        public Vehicle veh;
+        public Vehicle veh = null;
 
         public static readonly Random rng = new Random();
 
@@ -88,7 +88,7 @@ namespace TrafficStopCallout
                 driver.Task.LeaveVehicle();
 
                 //Give driver time to leave the vehicle
-                await BaseScript.Delay(500);
+                await BaseScript.Delay(1500);
 
                 //Attack Officer
                 driver.Task.FightAgainst(Game.PlayerPed);
@@ -141,7 +141,7 @@ namespace TrafficStopCallout
                 driver.Task.LeaveVehicle();
 
                 //Give time for the driver to exit the vehicle
-                await BaseScript.Delay(500);
+                await BaseScript.Delay(1500);
 
                 //Wait for the cop to get close before taking off
                 //This ends in a pursuit
@@ -164,7 +164,7 @@ namespace TrafficStopCallout
                 driver.Task.LeaveVehicle();
 
                 //Wait for the driver to exit the vehicle
-                await BaseScript.Delay(500);
+                await BaseScript.Delay(1500);
 
                 //Hands up
                 driver.Task.PlayAnimation("missminuteman_1ig_2", "handsup_base", 8.0f, -1, AnimationFlags.Loop);
@@ -183,7 +183,7 @@ namespace TrafficStopCallout
                 driver.Task.LeaveVehicle();
 
                 //Wait for the driver to exit the vehicle
-                await BaseScript.Delay(500);
+                await BaseScript.Delay(1500);
 
                 //Make them use their phone
                 driver.Task.StartScenario("WORLD_HUMAN_STAND_MOBILE_UPRIGHT", driver.Position);
@@ -196,15 +196,25 @@ namespace TrafficStopCallout
 
         public override void OnCancelBefore()
         {
-            base.OnCancelBefore();
-
             ShowNetworkedNotification("Remember to ~r~cancel~s~ the ~y~Traffic Stop~s~", "CHAR_CALL911", "CHAR_CALL911", "Dispatch", "Reminder", 1f);
-
-            //Delete all the blips attached to the driver
-            foreach(Blip b in driver.AttachedBlips)
+            try
             {
-                b.Delete();
+                if(API.DoesEntityExist(driver.Handle))
+                {
+                    //Delete all the blips attached to the driver
+                    foreach (Blip b in driver.AttachedBlips)
+                    {
+                        b.Delete();
+                    }
+                }
             }
+            catch
+            {
+                //Just some error handling if the deleting blips goes wrong
+                //things will carry on as normal
+            }
+
+            base.OnCancelBefore();
         }
 
         //Tick Logic
