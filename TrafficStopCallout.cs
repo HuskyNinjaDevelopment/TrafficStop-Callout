@@ -10,40 +10,38 @@ using System.Threading.Tasks;
 
 namespace TrafficStopCallout
 {
-    [CalloutProperties("TrafficStop", "HuskyNinja", "v1.0")]
+    [CalloutProperties("TrafficStop", "HuskyNinja", "v2.0")]
     internal class TrafficStopCallout : Callout
     {
-        public Ped player = null;
-        public Ped driver = null;
+        private static readonly Random _rng = new Random();
 
-        public Vehicle veh = null;
-
-        public static readonly Random rng = new Random();
+        private Ped _player = null;
+        private Ped _driver = null;
+        private Vehicle _veh = null;
 
         public TrafficStopCallout()
         {
-            player = Game.PlayerPed;
+            _player = Game.PlayerPed;
             PlayerData playerData = Utilities.GetPlayerData();
 
-            InitInfo(player.Position);
+            InitInfo(_player.Position);
             ResponseCode = 1;
             StartDistance = 50f;
-            ShortName = $"Traffic Stop on {World.GetStreetName(player.Position)}";
-            CalloutDescription = $"Officer {playerData.Callsign} is performing a Traffic Stop on {World.GetStreetName(player.Position)}.";
+            ShortName = $"Traffic Stop on {World.GetStreetName(_player.Position)}";
+            CalloutDescription = $"Officer {playerData.Callsign} is performing a Traffic Stop on {World.GetStreetName(_player.Position)}.";
         }
 
+        //Only start the callout if the player is on a traffic stop
         public override async Task<bool> CheckRequirements()
         {
             await Task.FromResult(0);
 
-            if (Utilities.IsPlayerPerformingTrafficStop())
+            if(Utilities.IsPlayerPerformingTrafficStop())
             {
                 return true;
             }
-            else
-            {
-                return false;
-            }
+            
+            return false;
         }
 
         public override async Task OnAccept()
@@ -59,39 +57,39 @@ namespace TrafficStopCallout
             base.OnStart(Closest);
 
             //Ped and Vehicle Data
-            veh = Utilities.GetVehicleFromTrafficStop();
-            VehicleData vehData = await veh.GetData();
+            _veh = Utilities.GetVehicleFromTrafficStop();
+            VehicleData vehData = await _veh.GetData();
 
-            driver = Utilities.GetDriverFromTrafficStop();
-            PedData driverData = await driver.GetData();
+            _driver = Utilities.GetDriverFromTrafficStop();
+            PedData driverData = await _driver.GetData();
 
             //Edit the Driver to match the vehicle owner info
             driverData.FirstName = vehData.OwnerFirstName;
             driverData.LastName = vehData.OwnerLastName;
 
             //Set the data
-            driver.SetData(driverData);
+            _driver.SetData(driverData);
 
             //Interaction roll determines what happens on the traffic stop
-            int interactionRoll = rng.Next(0, 100);
+            int interactionRoll = _rng.Next(0, 100);
 
             //5% chance to have a meele weapon
             if (interactionRoll <= 4)
             {
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 8f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 8f) { await BaseScript.Delay(10); }
 
                 //Give Knife
-                driver.Weapons.Give(GetMeeleWeapon(), 1, true, true);
+                _driver.Weapons.Give(GetMeeleWeapon(), 1, true, true);
 
                 //Get Out of vehicle
-                driver.Task.LeaveVehicle();
+                _driver.Task.LeaveVehicle();
 
                 //Give driver time to leave the vehicle
                 await BaseScript.Delay(1500);
 
                 //Attack Officer
-                driver.Task.FightAgainst(Game.PlayerPed);
+                _driver.Task.FightAgainst(Game.PlayerPed);
 
             }
 
@@ -99,20 +97,20 @@ namespace TrafficStopCallout
             if (interactionRoll == 69)
             {
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 5f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 5f) { await BaseScript.Delay(10); }
 
                 //Give gun
-                driver.Weapons.Give(WeaponHash.Pistol, 5, true, true);
-                driver.Accuracy = 12;
+                _driver.Weapons.Give(WeaponHash.Pistol, 5, true, true);
+                _driver.Accuracy = 12;
 
                 //Fire at officer
-                driver.Task.ShootAt(Game.PlayerPed, -1, FiringPattern.SingleShot);
+                _driver.Task.ShootAt(Game.PlayerPed, -1, FiringPattern.SingleShot);
 
                 //Wait a bit to shoot before taking off
-                await BaseScript.Delay(rng.Next(3000, 3500));
+                await BaseScript.Delay(_rng.Next(3000, 3500));
 
                 //This ends in a pursuit
-                var pursuit = Pursuit.RegisterPursuit(driver);
+                var pursuit = Pursuit.RegisterPursuit(_driver);
                 pursuit.Init(true, 35f, 50f, true);
                 pursuit.ActivatePursuit();
 
@@ -122,11 +120,11 @@ namespace TrafficStopCallout
             if (interactionRoll >= 10 && interactionRoll <= 19)
             {
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 5f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 5f) { await BaseScript.Delay(10); }
 
                 //Wait for the cop to get close before taking off
                 //This ends in a pursuit
-                var pursuit = Pursuit.RegisterPursuit(driver);
+                var pursuit = Pursuit.RegisterPursuit(_driver);
                 pursuit.Init(true, 35f, 50f, true);
                 pursuit.ActivatePursuit();
             }
@@ -135,17 +133,17 @@ namespace TrafficStopCallout
             if (interactionRoll >= 30 && interactionRoll <= 44)
             {
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 10f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 10f) { await BaseScript.Delay(10); }
 
                 //driver exits vehicle
-                driver.Task.LeaveVehicle();
+                _driver.Task.LeaveVehicle();
 
                 //Give time for the driver to exit the vehicle
                 await BaseScript.Delay(1500);
 
                 //Wait for the cop to get close before taking off
                 //This ends in a pursuit
-                var pursuit = Pursuit.RegisterPursuit(driver);
+                var pursuit = Pursuit.RegisterPursuit(_driver);
                 pursuit.Init(false, 35f, 50f, true);
                 pursuit.ActivatePursuit();
             }
@@ -158,16 +156,16 @@ namespace TrafficStopCallout
                 while (!API.HasAnimDictLoaded("missminuteman_1ig_2")) { await BaseScript.Delay(10); }
 
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 5f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 5f) { await BaseScript.Delay(10); }
 
                 //driver exits vehicle
-                driver.Task.LeaveVehicle();
+                _driver.Task.LeaveVehicle();
 
                 //Wait for the driver to exit the vehicle
                 await BaseScript.Delay(1500);
 
                 //Hands up
-                driver.Task.PlayAnimation("missminuteman_1ig_2", "handsup_base", 8.0f, -1, AnimationFlags.Loop);
+                _driver.Task.PlayAnimation("missminuteman_1ig_2", "handsup_base", 8.0f, -1, AnimationFlags.Loop);
 
                 //Tell AI to get back in car
                 Tick += BackInCar;
@@ -177,16 +175,16 @@ namespace TrafficStopCallout
             if (interactionRoll >= 20 && interactionRoll <= 29)
             {
                 //wait for officer to get close
-                while (World.GetDistance(Game.PlayerPed.Position, driver.Position) > 8f) { await BaseScript.Delay(10); }
+                while (World.GetDistance(Game.PlayerPed.Position, _driver.Position) > 8f) { await BaseScript.Delay(10); }
 
                 //driver exits vehicle
-                driver.Task.LeaveVehicle();
+                _driver.Task.LeaveVehicle();
 
                 //Wait for the driver to exit the vehicle
                 await BaseScript.Delay(1500);
 
                 //Make them use their phone
-                driver.Task.StartScenario("WORLD_HUMAN_STAND_MOBILE_UPRIGHT", driver.Position);
+                _driver.Task.StartScenario("WORLD_HUMAN_STAND_MOBILE_UPRIGHT", _driver.Position);
 
                 //Tell AIU to get abck in car
                 Tick += BackInCar;
@@ -199,10 +197,10 @@ namespace TrafficStopCallout
             ShowNetworkedNotification("Remember to ~r~cancel~s~ the ~y~Traffic Stop~s~", "CHAR_CALL911", "CHAR_CALL911", "Dispatch", "Reminder", 1f);
             try
             {
-                if(API.DoesEntityExist(driver.Handle))
+                if(API.DoesEntityExist(_driver.Handle))
                 {
                     //Delete all the blips attached to the driver
-                    foreach (Blip b in driver.AttachedBlips)
+                    foreach (Blip b in _driver.AttachedBlips)
                     {
                         b.Delete();
                     }
